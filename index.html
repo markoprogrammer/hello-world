@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Doctor Mario</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #1a1a2e;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: 'Courier New', monospace;
+      color: #fff;
+    }
+    #app {
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+    }
+    #left-panel, #right-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-width: 130px;
+    }
+    .panel-box {
+      background: #16213e;
+      border: 3px solid #0f3460;
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+    }
+    .panel-box h3 {
+      color: #e94560;
+      font-size: 12px;
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+    }
+    .panel-box .value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #fff;
+    }
+    #game-container {
+      position: relative;
+    }
+    #game-canvas {
+      border: 4px solid #0f3460;
+      border-radius: 4px;
+      display: block;
+      background: #0d0d0d;
+    }
+    #overlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.85);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+    }
+    #overlay h1 {
+      font-size: 36px;
+      color: #e94560;
+      margin-bottom: 8px;
+      text-shadow: 0 0 20px #e94560;
+    }
+    #overlay .subtitle {
+      color: #aaa;
+      font-size: 13px;
+      margin-bottom: 30px;
+    }
+    #overlay .msg {
+      color: #fff;
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+    #start-btn {
+      background: #e94560;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 12px 32px;
+      font-size: 18px;
+      font-family: 'Courier New', monospace;
+      cursor: pointer;
+      letter-spacing: 2px;
+      transition: background 0.2s;
+    }
+    #start-btn:hover { background: #c73652; }
+    .controls-info {
+      margin-top: 20px;
+      color: #666;
+      font-size: 11px;
+      line-height: 1.8;
+      text-align: center;
+    }
+    .controls-info span { color: #e94560; }
+    #level-select {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .lvl-btn {
+      background: #0f3460;
+      color: #fff;
+      border: 2px solid #0f3460;
+      border-radius: 4px;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+    }
+    .lvl-btn.active, .lvl-btn:hover {
+      background: #e94560;
+      border-color: #e94560;
+    }
+    #next-canvas {
+      display: block;
+      margin: 0 auto;
+    }
+    #virus-counter {
+      font-size: 28px;
+      font-weight: bold;
+      color: #4ade80;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="left-panel">
+    <div class="panel-box">
+      <h3>SCORE</h3>
+      <div class="value" id="score-display">0</div>
+    </div>
+    <div class="panel-box">
+      <h3>LEVEL</h3>
+      <div class="value" id="level-display">1</div>
+    </div>
+    <div class="panel-box">
+      <h3>SPEED</h3>
+      <div class="value" id="speed-display">LOW</div>
+    </div>
+    <div class="panel-box" style="font-size:11px; color:#666; line-height:1.9;">
+      <h3 style="margin-bottom:6px;">CONTROLS</h3>
+      <div><span style="color:#e94560">←→</span> Move</div>
+      <div><span style="color:#e94560">↑</span> Rotate</div>
+      <div><span style="color:#e94560">↓</span> Fast drop</div>
+      <div><span style="color:#e94560">P</span> Pause</div>
+    </div>
+  </div>
+
+  <div id="game-container">
+    <canvas id="game-canvas" width="240" height="480"></canvas>
+    <div id="overlay">
+      <h1>DR. MARIO</h1>
+      <div class="subtitle">Eliminate all viruses!</div>
+      <div class="msg" id="overlay-msg"></div>
+      <div id="level-select">
+        <button class="lvl-btn active" data-level="1">1</button>
+        <button class="lvl-btn" data-level="3">3</button>
+        <button class="lvl-btn" data-level="5">5</button>
+        <button class="lvl-btn" data-level="7">7</button>
+        <button class="lvl-btn" data-level="10">10</button>
+      </div>
+      <button id="start-btn">START</button>
+      <div class="controls-info">
+        <span>←→</span> Move &nbsp; <span>↑</span> Rotate &nbsp; <span>↓</span> Drop &nbsp; <span>P</span> Pause
+      </div>
+    </div>
+  </div>
+
+  <div id="right-panel">
+    <div class="panel-box">
+      <h3>NEXT</h3>
+      <canvas id="next-canvas" width="80" height="40"></canvas>
+    </div>
+    <div class="panel-box">
+      <h3>VIRUSES</h3>
+      <div id="virus-counter" class="value">0</div>
+    </div>
+    <div class="panel-box">
+      <h3>COMBO</h3>
+      <div class="value" id="combo-display">x1</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const COLS = 8;
+const ROWS = 16;
+const CELL = 30;
+const COLORS = ['red', 'yellow', 'blue'];
+
+const COLOR_MAIN = { red: '#e94560', yellow: '#facc15', blue: '#38bdf8' };
+const COLOR_DARK = { red: '#7f1d1d', yellow: '#78350f', blue: '#0c4a6e' };
+const COLOR_LIGHT = { red: '#fca5a5', yellow: '#fde68a', blue: '#bae6fd' };
+
+// Virus shapes (simple pixel-art smiley variants)
+const VIRUS_FRAMES = [0, 1];
+
+const canvas = document.getElementById('game-canvas');
+const ctx = canvas.getContext('2d');
+const nextCanvas = document.getElementById('next-canvas');
+const nextCtx = nextCanvas.getContext('2d');
+
+let board = [];
+let currentCapsule = null;
+let nextCapsule = null;
+let score = 0;
+let level = 1;
+let viruses = 0;
+let gameRunning = false;
+let gamePaused = false;
+let dropInterval = 800;
+let lastDrop = 0;
+let combo = 0;
+let animFrame = 0;
+let animTick = 0;
+let selectedLevel = 1;
+let fastDrop = false;
+
+const overlay = document.getElementById('overlay');
+const overlayMsg = document.getElementById('overlay-msg');
+const scoreDisplay = document.getElementById('score-display');
+const levelDisplay = document.getElementById('level-display');
+const speedDisplay = document.getElementById('speed-display');
+const virusCounter = document.getElementById('virus-counter');
+const comboDisplay = document.getElementById('combo-display');
+
+// Board cell: { type: 'virus'|'capsule'|null, color, connected: 'left'|'right'|'top'|'bottom'|null }
+function emptyBoard() {
+  return Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+}
+
+function randomColor() {
+  return COLORS[Math.floor(Math.random() * COLORS.length)];
+}
+
+function makeRandomCapsule() {
+  return {
+    color1: randomColor(),
+    color2: randomColor(),
+    row: 0,
+    col: Math.floor(COLS / 2) - 1,
+    orientation: 'horizontal', // 'horizontal' or 'vertical'
+  };
+}
+
+// Capsule occupies two cells
+function getCapsuleCells(cap) {
+  const { row, col, orientation, color1, color2 } = cap;
+  if (orientation === 'horizontal') {
+    return [
+      { row, col, color: color1, side: 'left' },
+      { row, col: col + 1, color: color2, side: 'right' },
+    ];
+  } else {
+    return [
+      { row, col, color: color1, side: 'top' },
+      { row: row + 1, col, color: color2, side: 'bottom' },
+    ];
+  }
+}
+
+function capsuleInBounds(cap) {
+  return getCapsuleCells(cap).every(
+    ({ row, col }) => row >= 0 && row < ROWS && col >= 0 && col < COLS
+  );
+}
+
+function capsuleCollides(cap) {
+  return getCapsuleCells(cap).some(({ row, col }) => board[row][col] !== null);
+}
+
+function placeCapsule(cap) {
+  const cells = getCapsuleCells(cap);
+  cells.forEach(({ row, col, color, side }) => {
+    board[row][col] = { type: 'capsule', color, side };
+  });
+}
+
+function rotateCapsule(cap) {
+  const newCap = { ...cap };
+  if (cap.orientation === 'horizontal') {
+    newCap.orientation = 'vertical';
+    // Check bounds and adjust
+    if (!capsuleInBounds(newCap) || capsuleCollides(newCap)) {
+      // Try shifting left
+      newCap.col = cap.col;
+      if (!capsuleInBounds(newCap) || capsuleCollides(newCap)) {
+        return cap; // Can't rotate
+      }
+    }
+  } else {
+    newCap.orientation = 'horizontal';
+    newCap.row = cap.row;
+    // If out of bounds on right, shift left
+    if (newCap.col + 1 >= COLS) newCap.col = COLS - 2;
+    if (!capsuleInBounds(newCap) || capsuleCollides(newCap)) {
+      return cap;
+    }
+  }
+  return newCap;
+}
+
+function spawnViruses(lvl) {
+  const count = Math.min(4 + lvl * 4, 72);
+  const maxRow = ROWS - 1;
+  const minRow = Math.floor(ROWS / 3);
+  let placed = 0;
+  let attempts = 0;
+  while (placed < count && attempts < 1000) {
+    attempts++;
+    const row = minRow + Math.floor(Math.random() * (maxRow - minRow + 1));
+    const col = Math.floor(Math.random() * COLS);
+    if (board[row][col] === null) {
+      board[row][col] = { type: 'virus', color: randomColor(), side: null };
+      placed++;
+    }
+  }
+  return placed;
+}
+
+function findMatches() {
+  const toRemove = new Set();
+
+  // Horizontal
+  for (let r = 0; r < ROWS; r++) {
+    let run = 1;
+    for (let c = 1; c <= COLS; c++) {
+      const prev = board[r][c - 1];
+      const curr = c < COLS ? board[r][c] : null;
+      if (curr && prev && curr.color === prev.color) {
+        run++;
+      } else {
+        if (run >= 4) {
+          for (let k = c - run; k < c; k++) toRemove.add(`${r},${k}`);
+        }
+        run = 1;
+      }
+    }
+  }
+
+  // Vertical
+  for (let c = 0; c < COLS; c++) {
+    let run = 1;
+    for (let r = 1; r <= ROWS; r++) {
+      const prev = board[r - 1][c];
+      const curr = r < ROWS ? board[r][c] : null;
+      if (curr && prev && curr.color === prev.color) {
+        run++;
+      } else {
+        if (run >= 4) {
+          for (let k = r - run; k < r; k++) toRemove.add(`${k},${c}`);
+        }
+        run = 1;
+      }
+    }
+  }
+
+  return [...toRemove].map(k => {
+    const [r, c] = k.split(',').map(Number);
+    return { row: r, col: c };
+  });
+}
+
+function removeMatches(matches) {
+  let virusesRemoved = 0;
+  matches.forEach(({ row, col }) => {
+    if (board[row][col] && board[row][col].type === 'virus') virusesRemoved++;
+    board[row][col] = null;
+  });
+  return virusesRemoved;
+}
+
+// After removing cells, capsule halves may be floating — make them fall
+function applyGravity() {
+  let moved = false;
+  // Iterate bottom to top
+  for (let r = ROWS - 2; r >= 0; r--) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = board[r][c];
+      if (cell && cell.type === 'capsule') {
+        // Only fall if it's a disconnected half (its partner is gone)
+        // Check if it's a horizontal half — partner same row
+        let hasPartner = false;
+        if (cell.side === 'left' && c + 1 < COLS && board[r][c + 1] && board[r][c + 1].side === 'right') hasPartner = true;
+        if (cell.side === 'right' && c - 1 >= 0 && board[r][c - 1] && board[r][c - 1].side === 'left') hasPartner = true;
+        if (cell.side === 'top' && r + 1 < ROWS && board[r + 1][c] && board[r + 1][c].side === 'bottom') hasPartner = true;
+        if (cell.side === 'bottom' && r - 1 >= 0 && board[r - 1][c] && board[r - 1][c].side === 'top') hasPartner = true;
+        if (cell.side === null) hasPartner = false; // virus - doesn't fall
+
+        if (!hasPartner && cell.side !== null) {
+          // Try to fall
+          if (board[r + 1][c] === null) {
+            board[r + 1][c] = cell;
+            board[r][c] = null;
+            moved = true;
+          }
+        }
+      }
+    }
+  }
+  // Also handle vertical pairs falling together
+  for (let r = ROWS - 2; r >= 0; r--) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = board[r][c];
+      if (cell && cell.type === 'capsule' && cell.side === 'top') {
+        const partner = r + 1 < ROWS ? board[r + 1][c] : null;
+        if (partner && partner.side === 'bottom') {
+          if (r + 2 < ROWS && board[r + 2][c] === null) {
+            board[r + 2][c] = partner;
+            board[r + 1][c] = cell;
+            board[r][c] = null;
+            moved = true;
+          }
+        }
+      }
+    }
+  }
+  return moved;
+}
+
+function countViruses() {
+  let count = 0;
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      if (board[r][c] && board[r][c].type === 'virus') count++;
+  return count;
+}
+
+function getDropInterval() {
+  const speeds = [800, 700, 600, 500, 400, 350, 300, 250, 200, 150];
+  return speeds[Math.min(level - 1, speeds.length - 1)];
+}
+
+function getSpeedLabel() {
+  if (level <= 3) return 'LOW';
+  if (level <= 6) return 'MED';
+  if (level <= 8) return 'HIGH';
+  return 'TURBO';
+}
+
+// ---- Drawing ----
+
+function drawCell(ctx, x, y, size, cell, pulse) {
+  if (!cell) return;
+  const color = cell.color;
+  const main = COLOR_MAIN[color];
+  const dark = COLOR_DARK[color];
+  const light = COLOR_LIGHT[color];
+
+  if (cell.type === 'virus') {
+    drawVirus(ctx, x, y, size, main, dark, light, pulse);
+  } else {
+    drawCapsuleHalf(ctx, x, y, size, cell.side, main, dark, light);
+  }
+}
+
+function drawCapsuleHalf(ctx, x, y, size, side, main, dark, light) {
+  const r = size / 2 - 2;
+  const cx = x + size / 2;
+  const cy = y + size / 2;
+
+  ctx.save();
+  ctx.beginPath();
+
+  if (side === 'left') {
+    // Left half = left rounded, right flat
+    ctx.arc(cx, cy, r, Math.PI / 2, 3 * Math.PI / 2);
+    ctx.lineTo(cx, cy - r);
+  } else if (side === 'right') {
+    ctx.arc(cx, cy, r, -Math.PI / 2, Math.PI / 2);
+    ctx.lineTo(cx, cy + r);
+  } else if (side === 'top') {
+    ctx.arc(cx, cy, r, Math.PI, 2 * Math.PI);
+    ctx.lineTo(cx + r, cy);
+  } else if (side === 'bottom') {
+    ctx.arc(cx, cy, r, 0, Math.PI);
+    ctx.lineTo(cx - r, cy);
+  } else {
+    // Full pill (for next preview)
+    ctx.arc(cx, cy, r, 0, 2 * Math.PI);
+  }
+
+  ctx.closePath();
+
+  const grad = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.3, 1, cx, cy, r);
+  grad.addColorStop(0, light);
+  grad.addColorStop(0.5, main);
+  grad.addColorStop(1, dark);
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.strokeStyle = dark;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Shine
+  ctx.beginPath();
+  if (side === 'left' || side === null) {
+    ctx.arc(cx - r * 0.3, cy - r * 0.3, r * 0.25, 0, 2 * Math.PI);
+  } else {
+    ctx.arc(cx + r * 0.1, cy - r * 0.3, r * 0.2, 0, 2 * Math.PI);
+  }
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawVirus(ctx, x, y, size, main, dark, light, pulse) {
+  const cx = x + size / 2;
+  const cy = y + size / 2;
+  const r = size / 2 - 3;
+  const bounce = Math.sin(pulse) * 1.5;
+
+  ctx.save();
+  ctx.translate(0, bounce);
+
+  // Body
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, 2 * Math.PI);
+  const grad = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.3, 1, cx, cy, r);
+  grad.addColorStop(0, light);
+  grad.addColorStop(0.6, main);
+  grad.addColorStop(1, dark);
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.strokeStyle = dark;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Spikes
+  ctx.strokeStyle = dark;
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(angle) * r, cy + Math.sin(angle) * r);
+    ctx.lineTo(cx + Math.cos(angle) * (r + 4), cy + Math.sin(angle) * (r + 4));
+    ctx.stroke();
+  }
+
+  // Eyes
+  const eyeY = cy - r * 0.2;
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(cx - r * 0.3, eyeY, r * 0.22, 0, 2 * Math.PI); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + r * 0.3, eyeY, r * 0.22, 0, 2 * Math.PI); ctx.fill();
+
+  // Pupils (look angry / cross-eyed depending on frame)
+  ctx.fillStyle = '#111';
+  ctx.beginPath(); ctx.arc(cx - r * 0.3 + 1, eyeY + 1, r * 0.1, 0, 2 * Math.PI); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + r * 0.3 - 1, eyeY + 1, r * 0.1, 0, 2 * Math.PI); ctx.fill();
+
+  // Mouth (frowning)
+  ctx.strokeStyle = '#111';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy + r * 0.3, r * 0.3, 0.2, Math.PI - 0.2);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawCurrentCapsule(pulse) {
+  if (!currentCapsule) return;
+  getCapsuleCells(currentCapsule).forEach(({ row, col, color, side }) => {
+    drawCapsuleHalf(ctx, col * CELL, row * CELL, CELL, side,
+      COLOR_MAIN[color], COLOR_DARK[color], COLOR_LIGHT[color]);
+  });
+}
+
+function drawBoard(pulse) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 1;
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      ctx.strokeRect(c * CELL, r * CELL, CELL, CELL);
+    }
+  }
+
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (board[r][c]) {
+        drawCell(ctx, c * CELL, r * CELL, CELL, board[r][c], pulse);
+      }
+    }
+  }
+  drawCurrentCapsule(pulse);
+}
+
+function drawNextCapsule() {
+  nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+  if (!nextCapsule) return;
+  const s = 36;
+  const y = (nextCanvas.height - s) / 2;
+  drawCapsuleHalf(nextCtx, 4, y, s, 'left',
+    COLOR_MAIN[nextCapsule.color1], COLOR_DARK[nextCapsule.color1], COLOR_LIGHT[nextCapsule.color1]);
+  drawCapsuleHalf(nextCtx, 4 + s, y, s, 'right',
+    COLOR_MAIN[nextCapsule.color2], COLOR_DARK[nextCapsule.color2], COLOR_LIGHT[nextCapsule.color2]);
+}
+
+// ---- Game Logic ----
+
+function startGame() {
+  board = emptyBoard();
+  score = 0;
+  combo = 0;
+  level = selectedLevel;
+  viruses = spawnViruses(level);
+  currentCapsule = makeRandomCapsule();
+  nextCapsule = makeRandomCapsule();
+  dropInterval = getDropInterval();
+  gameRunning = true;
+  gamePaused = false;
+  lastDrop = performance.now();
+  overlay.style.display = 'none';
+  updateHUD();
+  requestAnimationFrame(gameLoop);
+}
+
+function updateHUD() {
+  scoreDisplay.textContent = score;
+  levelDisplay.textContent = level;
+  speedDisplay.textContent = getSpeedLabel();
+  virusCounter.textContent = countViruses();
+  comboDisplay.textContent = combo > 1 ? `x${combo}` : 'x1';
+}
+
+let processingMatches = false;
+let matchAnimTimer = 0;
+let pendingMatches = [];
+let gravityTimer = 0;
+
+async function processMatches() {
+  processingMatches = true;
+  let comboCount = 0;
+
+  while (true) {
+    const matches = findMatches();
+    if (matches.length === 0) break;
+    comboCount++;
+
+    // Flash effect - mark cells for removal
+    pendingMatches = matches;
+    await delay(200);
+
+    const virusesKilled = removeMatches(matches);
+    viruses -= virusesKilled;
+    const pts = matches.length * 100 * comboCount * level;
+    score += pts;
+    combo = comboCount;
+    updateHUD();
+
+    await delay(100);
+    pendingMatches = [];
+
+    // Apply gravity
+    let fell = true;
+    while (fell) {
+      fell = applyGravity();
+      if (fell) await delay(80);
+    }
+  }
+
+  processingMatches = false;
+  comboCount === 0 && (combo = 0);
+  updateHUD();
+
+  if (viruses <= 0) {
+    win();
+    return;
+  }
+
+  spawnNext();
+}
+
+function delay(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+function spawnNext() {
+  currentCapsule = nextCapsule;
+  nextCapsule = makeRandomCapsule();
+  drawNextCapsule();
+
+  if (capsuleCollides(currentCapsule)) {
+    gameOver();
+    return;
+  }
+  lastDrop = performance.now();
+}
+
+function moveDown() {
+  const moved = { ...currentCapsule, row: currentCapsule.row + 1 };
+  if (!capsuleInBounds(moved) || capsuleCollides(moved)) {
+    // Lock
+    placeCapsule(currentCapsule);
+    currentCapsule = null;
+    processMatches();
+  } else {
+    currentCapsule = moved;
+  }
+}
+
+function moveLeft() {
+  const moved = { ...currentCapsule, col: currentCapsule.col - 1 };
+  if (capsuleInBounds(moved) && !capsuleCollides(moved)) currentCapsule = moved;
+}
+
+function moveRight() {
+  const moved = { ...currentCapsule, col: currentCapsule.col + 1 };
+  if (capsuleInBounds(moved) && !capsuleCollides(moved)) currentCapsule = moved;
+}
+
+function gameOver() {
+  gameRunning = false;
+  overlayMsg.textContent = `Score: ${score}`;
+  overlay.querySelector('h1').textContent = 'GAME OVER';
+  overlay.querySelector('.subtitle').textContent = 'The viruses won this time!';
+  document.getElementById('start-btn').textContent = 'RETRY';
+  overlay.style.display = 'flex';
+}
+
+function win() {
+  gameRunning = false;
+  overlayMsg.textContent = `Score: ${score} | Level ${level} clear!`;
+  overlay.querySelector('h1').textContent = 'YOU WIN!';
+  overlay.querySelector('.subtitle').textContent = 'All viruses eliminated!';
+  document.getElementById('start-btn').textContent = 'NEXT LEVEL';
+  selectedLevel = Math.min(selectedLevel + 1, 10);
+  // Update active button
+  document.querySelectorAll('.lvl-btn').forEach(b => b.classList.remove('active'));
+  overlay.style.display = 'flex';
+}
+
+// ---- Game Loop ----
+
+function gameLoop(ts) {
+  if (!gameRunning) return;
+
+  animTick++;
+  const pulse = animTick * 0.07;
+
+  if (!gamePaused && !processingMatches && currentCapsule) {
+    const interval = fastDrop ? 60 : dropInterval;
+    if (ts - lastDrop > interval) {
+      moveDown();
+      lastDrop = ts;
+    }
+  }
+
+  // Flash pending matches
+  if (pendingMatches.length > 0) {
+    const flash = Math.floor(animTick / 4) % 2 === 0;
+    drawBoard(pulse);
+    if (flash) {
+      pendingMatches.forEach(({ row, col }) => {
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.fillRect(col * CELL + 2, row * CELL + 2, CELL - 4, CELL - 4);
+      });
+    }
+  } else {
+    drawBoard(pulse);
+  }
+
+  drawNextCapsule();
+  requestAnimationFrame(gameLoop);
+}
+
+// ---- Input ----
+
+const keyRepeat = {};
+const KEY_DELAY = 150;
+const KEY_REPEAT = 80;
+
+document.addEventListener('keydown', e => {
+  if (!gameRunning || processingMatches) return;
+
+  if (e.key === 'p' || e.key === 'P') {
+    gamePaused = !gamePaused;
+    return;
+  }
+
+  if (gamePaused) return;
+
+  switch (e.key) {
+    case 'ArrowLeft':
+      e.preventDefault();
+      if (!keyRepeat['left']) {
+        moveLeft();
+        keyRepeat['left'] = { next: Date.now() + KEY_DELAY, fn: moveLeft };
+      }
+      break;
+    case 'ArrowRight':
+      e.preventDefault();
+      if (!keyRepeat['right']) {
+        moveRight();
+        keyRepeat['right'] = { next: Date.now() + KEY_DELAY, fn: moveRight };
+      }
+      break;
+    case 'ArrowUp':
+      e.preventDefault();
+      currentCapsule = rotateCapsule(currentCapsule);
+      break;
+    case 'ArrowDown':
+      e.preventDefault();
+      fastDrop = true;
+      break;
+  }
+});
+
+document.addEventListener('keyup', e => {
+  if (e.key === 'ArrowLeft') { delete keyRepeat['left']; }
+  if (e.key === 'ArrowRight') { delete keyRepeat['right']; }
+  if (e.key === 'ArrowDown') { fastDrop = false; }
+});
+
+// Key repeat simulation
+setInterval(() => {
+  const now = Date.now();
+  for (const key in keyRepeat) {
+    if (now >= keyRepeat[key].next) {
+      keyRepeat[key].fn();
+      keyRepeat[key].next = now + KEY_REPEAT;
+    }
+  }
+}, 16);
+
+// ---- UI ----
+
+document.getElementById('start-btn').addEventListener('click', startGame);
+
+document.querySelectorAll('.lvl-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.lvl-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedLevel = parseInt(btn.dataset.level);
+  });
+});
+
+// Initial next capsule draw
+nextCapsule = makeRandomCapsule();
+drawNextCapsule();
+
+// Initial board draw (empty)
+board = emptyBoard();
+drawBoard(0);
+</script>
+</body>
+</html>
