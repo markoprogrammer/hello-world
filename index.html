@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modern 3D Experience</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #000;
+      color: #fff;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      overflow-x: hidden;
+    }
+
+    #canvas-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+
+    canvas { display: block; }
+
+    .overlay {
+      position: relative;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .overlay * {
+      pointer-events: auto;
+    }
+
+    /* Hero Section */
+    .hero {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 0 2rem;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 8vw, 6rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      background: linear-gradient(135deg, #fff 0%, #a78bfa 50%, #6d28d9 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      opacity: 0;
+      transform: translateY(40px);
+      animation: fadeUp 1s ease forwards 0.3s;
+    }
+
+    .hero p {
+      font-size: clamp(1rem, 2.5vw, 1.4rem);
+      color: rgba(255, 255, 255, 0.6);
+      max-width: 600px;
+      margin-top: 1.5rem;
+      line-height: 1.6;
+      opacity: 0;
+      transform: translateY(30px);
+      animation: fadeUp 1s ease forwards 0.6s;
+    }
+
+    .hero .cta {
+      margin-top: 2.5rem;
+      opacity: 0;
+      transform: translateY(30px);
+      animation: fadeUp 1s ease forwards 0.9s;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 0.9rem 2.5rem;
+      border: none;
+      border-radius: 50px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #7c3aed, #6d28d9);
+      color: #fff;
+      box-shadow: 0 4px 30px rgba(109, 40, 217, 0.4);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 40px rgba(109, 40, 217, 0.6);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      margin-left: 1rem;
+    }
+
+    .btn-outline:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+
+    .scroll-indicator {
+      position: absolute;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 0;
+      animation: fadeUp 1s ease forwards 1.2s;
+    }
+
+    .scroll-indicator span {
+      display: block;
+      width: 24px;
+      height: 38px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 12px;
+      position: relative;
+    }
+
+    .scroll-indicator span::after {
+      content: '';
+      width: 4px;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 2px;
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      animation: scrollDot 2s ease infinite;
+    }
+
+    /* Sections */
+    section {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      padding: 6rem 2rem;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .section-label {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: #a78bfa;
+      margin-bottom: 1rem;
+    }
+
+    .section-title {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      margin-bottom: 1.5rem;
+    }
+
+    .section-text {
+      font-size: 1.1rem;
+      color: rgba(255, 255, 255, 0.6);
+      line-height: 1.7;
+      max-width: 550px;
+    }
+
+    /* Features */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      margin-top: 4rem;
+    }
+
+    .feature-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 20px;
+      padding: 2.5rem;
+      transition: all 0.4s ease;
+      backdrop-filter: blur(10px);
+    }
+
+    .feature-card:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(124, 58, 237, 0.3);
+      transform: translateY(-4px);
+    }
+
+    .feature-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(109, 40, 217, 0.1));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .feature-card h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+    }
+
+    .feature-card p {
+      color: rgba(255, 255, 255, 0.5);
+      line-height: 1.6;
+      font-size: 0.95rem;
+    }
+
+    /* Stats */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 3rem;
+      margin-top: 4rem;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-weight: 800;
+      background: linear-gradient(135deg, #c4b5fd, #7c3aed);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .stat-label {
+      color: rgba(255, 255, 255, 0.5);
+      margin-top: 0.5rem;
+      font-size: 0.95rem;
+    }
+
+    /* Footer */
+    footer {
+      padding: 3rem 2rem;
+      text-align: center;
+      color: rgba(255, 255, 255, 0.3);
+      font-size: 0.9rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Animations */
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes scrollDot {
+      0%, 100% { opacity: 0.5; transform: translate(-50%, 0); }
+      50% { opacity: 1; transform: translate(-50%, 10px); }
+    }
+
+    .fade-in {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.8s ease, transform 0.8s ease;
+    }
+
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .features-grid { grid-template-columns: 1fr; }
+      .btn-outline { margin-left: 0; margin-top: 1rem; }
+      .hero .cta { display: flex; flex-direction: column; align-items: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="canvas-container"></div>
+
+  <div class="overlay">
+    <!-- Hero -->
+    <section class="hero">
+      <h1>The Future<br>Is Immersive</h1>
+      <p>Experience the next generation of web design with real-time 3D graphics, fluid animations, and stunning visual effects.</p>
+      <div class="cta">
+        <a href="#features" class="btn btn-primary">Explore</a>
+        <a href="#stats" class="btn btn-outline">Learn More</a>
+      </div>
+      <div class="scroll-indicator"><span></span></div>
+    </section>
+
+    <!-- Features -->
+    <section id="features">
+      <div class="container">
+        <div class="fade-in">
+          <div class="section-label">Features</div>
+          <div class="section-title">Built for the<br>modern web</div>
+          <p class="section-text">Harnessing the power of WebGL and GPU-accelerated rendering to deliver experiences that feel native.</p>
+        </div>
+        <div class="features-grid">
+          <div class="feature-card fade-in">
+            <div class="feature-icon">&#9889;</div>
+            <h3>Lightning Fast</h3>
+            <p>GPU-accelerated rendering at 60fps. No compromises on performance, even on complex scenes with thousands of particles.</p>
+          </div>
+          <div class="feature-card fade-in">
+            <div class="feature-icon">&#10024;</div>
+            <h3>Stunning Visuals</h3>
+            <p>Dynamic lighting, reflections, and post-processing effects create photorealistic environments in real-time.</p>
+          </div>
+          <div class="feature-card fade-in">
+            <div class="feature-icon">&#128736;</div>
+            <h3>Fully Interactive</h3>
+            <p>Mouse tracking, scroll-driven animations, and responsive design ensure every interaction feels intentional.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Stats -->
+    <section id="stats">
+      <div class="container">
+        <div class="fade-in" style="text-align: center;">
+          <div class="section-label">By the numbers</div>
+          <div class="section-title">Performance that speaks<br>for itself</div>
+        </div>
+        <div class="stats-row fade-in">
+          <div class="stat">
+            <div class="stat-number">60</div>
+            <div class="stat-label">Frames per second</div>
+          </div>
+          <div class="stat">
+            <div class="stat-number">10K+</div>
+            <div class="stat-label">Particles rendered</div>
+          </div>
+          <div class="stat">
+            <div class="stat-number">&lt;1s</div>
+            <div class="stat-label">Load time</div>
+          </div>
+          <div class="stat">
+            <div class="stat-number">100%</div>
+            <div class="stat-label">GPU accelerated</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    &copy; 2026 Modern 3D &mdash; Built with Three.js
+  </footer>
+
+  <!-- Three.js from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    // ─── Three.js Scene ───────────────────────────────────
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.z = 30;
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0x030014);
+    container.appendChild(renderer.domElement);
+
+    // ─── Particles ────────────────────────────────────────
+    const particleCount = 6000;
+    const positions = new Float32Array(particleCount * 3);
+    const colors = new Float32Array(particleCount * 3);
+    const sizes = new Float32Array(particleCount);
+    const velocities = new Float32Array(particleCount * 3);
+
+    const purple = new THREE.Color(0x7c3aed);
+    const blue = new THREE.Color(0x3b82f6);
+    const pink = new THREE.Color(0xec4899);
+    const colorPalette = [purple, blue, pink];
+
+    for (let i = 0; i < particleCount; i++) {
+      const i3 = i * 3;
+      const radius = 20 + Math.random() * 40;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+
+      positions[i3] = radius * Math.sin(phi) * Math.cos(theta);
+      positions[i3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+      positions[i3 + 2] = radius * Math.cos(phi);
+
+      const color = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+      colors[i3] = color.r;
+      colors[i3 + 1] = color.g;
+      colors[i3 + 2] = color.b;
+
+      sizes[i] = Math.random() * 3 + 0.5;
+
+      velocities[i3] = (Math.random() - 0.5) * 0.01;
+      velocities[i3 + 1] = (Math.random() - 0.5) * 0.01;
+      velocities[i3 + 2] = (Math.random() - 0.5) * 0.01;
+    }
+
+    const particleGeometry = new THREE.BufferGeometry();
+    particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    particleGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    particleGeometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+    const particleMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: { value: 0 },
+        uMouse: { value: new THREE.Vector2(0, 0) },
+        uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+      },
+      vertexShader: `
+        attribute float size;
+        attribute vec3 color;
+        varying vec3 vColor;
+        uniform float uTime;
+        uniform vec2 uMouse;
+        uniform float uPixelRatio;
+
+        void main() {
+          vColor = color;
+          vec3 pos = position;
+
+          // Gentle wave motion
+          pos.x += sin(uTime * 0.3 + pos.y * 0.05) * 0.8;
+          pos.y += cos(uTime * 0.2 + pos.x * 0.05) * 0.8;
+          pos.z += sin(uTime * 0.25 + pos.z * 0.05) * 0.5;
+
+          vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+          gl_PointSize = size * uPixelRatio * (80.0 / -mvPosition.z);
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: `
+        varying vec3 vColor;
+
+        void main() {
+          float dist = length(gl_PointCoord - vec2(0.5));
+          if (dist > 0.5) discard;
+
+          float alpha = 1.0 - smoothstep(0.0, 0.5, dist);
+          alpha *= 0.6;
+          gl_FragColor = vec4(vColor, alpha);
+        }
+      `,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+
+    const particles = new THREE.Points(particleGeometry, particleMaterial);
+    scene.add(particles);
+
+    // ─── Central Torus Knot ───────────────────────────────
+    const torusGeometry = new THREE.TorusKnotGeometry(4, 1.2, 200, 32);
+    const torusMaterial = new THREE.MeshStandardMaterial({
+      color: 0x7c3aed,
+      metalness: 0.9,
+      roughness: 0.1,
+      wireframe: true,
+      emissive: 0x4c1d95,
+      emissiveIntensity: 0.3,
+    });
+    const torus = new THREE.Mesh(torusGeometry, torusMaterial);
+    scene.add(torus);
+
+    // ─── Floating Rings ───────────────────────────────────
+    const rings = [];
+    for (let i = 0; i < 4; i++) {
+      const ringGeo = new THREE.TorusGeometry(8 + i * 3, 0.04, 16, 100);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: 0x7c3aed,
+        transparent: true,
+        opacity: 0.15 - i * 0.03,
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = Math.PI / 2 + i * 0.2;
+      ring.rotation.y = i * 0.3;
+      scene.add(ring);
+      rings.push(ring);
+    }
+
+    // ─── Lights ───────────────────────────────────────────
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+    scene.add(ambientLight);
+
+    const pointLight1 = new THREE.PointLight(0x7c3aed, 2, 100);
+    pointLight1.position.set(10, 10, 10);
+    scene.add(pointLight1);
+
+    const pointLight2 = new THREE.PointLight(0x3b82f6, 1.5, 100);
+    pointLight2.position.set(-10, -10, -10);
+    scene.add(pointLight2);
+
+    const pointLight3 = new THREE.PointLight(0xec4899, 1, 80);
+    pointLight3.position.set(0, 15, -5);
+    scene.add(pointLight3);
+
+    // ─── Mouse Tracking ───────────────────────────────────
+    const mouse = { x: 0, y: 0, target: { x: 0, y: 0 } };
+
+    document.addEventListener('mousemove', (e) => {
+      mouse.target.x = (e.clientX / window.innerWidth) * 2 - 1;
+      mouse.target.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    });
+
+    // ─── Scroll ───────────────────────────────────────────
+    let scrollY = 0;
+    window.addEventListener('scroll', () => {
+      scrollY = window.scrollY;
+    });
+
+    // ─── Resize ───────────────────────────────────────────
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      particleMaterial.uniforms.uPixelRatio.value = Math.min(window.devicePixelRatio, 2);
+    });
+
+    // ─── Scroll Reveal ────────────────────────────────────
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          }
+        });
+      },
+      { threshold: 0.15 }
+    );
+
+    document.querySelectorAll('.fade-in').forEach((el) => observer.observe(el));
+
+    // ─── Animation Loop ───────────────────────────────────
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const elapsed = clock.getElapsedTime();
+
+      // Smooth mouse
+      mouse.x += (mouse.target.x - mouse.x) * 0.05;
+      mouse.y += (mouse.target.y - mouse.y) * 0.05;
+
+      // Scroll-based camera
+      const scrollFactor = scrollY * 0.001;
+      camera.position.z = 30 - scrollFactor * 5;
+      camera.position.y = -scrollFactor * 3;
+
+      // Mouse parallax
+      camera.position.x += (mouse.x * 3 - camera.position.x) * 0.02;
+      camera.position.y += (mouse.y * 2 - camera.position.y + scrollFactor * -3) * 0.02;
+      camera.lookAt(0, 0, 0);
+
+      // Rotate torus
+      torus.rotation.x = elapsed * 0.15 + mouse.y * 0.3;
+      torus.rotation.y = elapsed * 0.2 + mouse.x * 0.3;
+      torus.rotation.z = elapsed * 0.1;
+
+      // Scale torus on scroll
+      const torusScale = 1 + scrollFactor * 0.3;
+      torus.scale.set(torusScale, torusScale, torusScale);
+
+      // Animate rings
+      rings.forEach((ring, i) => {
+        ring.rotation.z = elapsed * (0.05 + i * 0.02);
+        ring.rotation.x = Math.PI / 2 + i * 0.2 + Math.sin(elapsed * 0.3 + i) * 0.1;
+      });
+
+      // Animate lights
+      pointLight1.position.x = Math.sin(elapsed * 0.5) * 15;
+      pointLight1.position.z = Math.cos(elapsed * 0.5) * 15;
+      pointLight2.position.y = Math.sin(elapsed * 0.3) * 15;
+      pointLight3.position.x = Math.cos(elapsed * 0.4) * 10;
+
+      // Update particle uniforms
+      particleMaterial.uniforms.uTime.value = elapsed;
+      particleMaterial.uniforms.uMouse.value.set(mouse.x, mouse.y);
+
+      // Slowly rotate particles
+      particles.rotation.y = elapsed * 0.02;
+      particles.rotation.x = elapsed * 0.01;
+
+      renderer.render(scene, camera);
+    }
+
+    animate();
+  </script>
+</body>
+</html>
